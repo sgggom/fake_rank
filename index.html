@@ -1,0 +1,1913 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>模拟排行榜</title>
+  <style>
+    :root {
+      --page-bg: #151925;
+      --veil: rgba(7, 10, 17, 0.58);
+      --panel: #b62fdd;
+      --panel-deep: #8f23c7;
+      --panel-dark: #6f1aa4;
+      --panel-edge: #e9a94e;
+      --pink: #ff72ef;
+      --orange: #ffae39;
+      --tab-gray: #c5d2e2;
+      --row-gold: #ffe06a;
+      --row-blue: #89cef3;
+      --row-green: #7ee892;
+      --text-brown: #84431e;
+      --text-blue: #24558b;
+      --text-green: #176934;
+      --shadow: 0 18px 30px rgba(33, 4, 54, 0.48);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      min-height: 100%;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100svh;
+      overflow: hidden;
+      background:
+        linear-gradient(var(--veil), var(--veil)),
+        radial-gradient(circle at 20% 18%, rgba(255, 216, 92, 0.32), transparent 8rem),
+        radial-gradient(circle at 82% 22%, rgba(111, 206, 255, 0.24), transparent 9rem),
+        linear-gradient(145deg, #22314a, var(--page-bg) 52%, #241b2e);
+      color: #fff;
+      font-family: "Arial Rounded MT Bold", "Microsoft YaHei", Arial, sans-serif;
+    }
+
+    button {
+      font: inherit;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .top-controls {
+      width: min(430px, 100vw);
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      padding: 0 16px;
+      color: #fff;
+      margin-bottom: 2px;
+      z-index: 2;
+    }
+
+    .time-box {
+      display: grid;
+      gap: 6px;
+      justify-items: center;
+    }
+
+    .time-value {
+      width: 100%;
+      min-height: 34px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.32);
+      font-size: 20px;
+      font-weight: 900;
+      text-shadow: 0 2px 2px rgba(0, 0, 0, 0.46);
+    }
+
+    .time-value.time-with-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .period-icon {
+      width: 20px;
+      height: 20px;
+      display: inline-grid;
+      place-items: center;
+      border-radius: 50%;
+      font-size: 13px;
+      line-height: 1;
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      background: rgba(255, 255, 255, 0.14);
+      box-shadow: 0 0 8px rgba(255, 255, 255, 0.18);
+    }
+
+    .period-icon.day {
+      color: #ffdc72;
+      background: rgba(255, 188, 66, 0.2);
+      border-color: rgba(255, 218, 140, 0.65);
+    }
+
+    .period-icon.night {
+      color: #d5dcff;
+      background: rgba(120, 138, 255, 0.2);
+      border-color: rgba(182, 194, 255, 0.68);
+    }
+
+    .time-step {
+      width: 100%;
+      min-height: 30px;
+      border: 0;
+      border-radius: 8px;
+      background: linear-gradient(180deg, #ffdd68, #ff9f21);
+      color: #8b4218;
+      font-size: 15px;
+      font-weight: 900;
+      cursor: pointer;
+      text-shadow: 0 1px 0 rgba(255, 255, 255, 0.52);
+      box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.5), 0 3px 0 #b65f20;
+    }
+
+    .app-layout {
+      width: 100%;
+      height: 100svh;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 16px;
+      padding: 80px 16px 12px;
+    }
+
+    .robot-overview {
+      min-width: 0;
+      height: min(860px, calc(100svh - 92px));
+      display: flex;
+      flex-direction: column;
+      border-radius: 14px;
+      border: 2px solid rgba(117, 167, 231, 0.38);
+      background:
+        linear-gradient(180deg, rgba(61, 115, 189, 0.18), rgba(16, 28, 54, 0.72)),
+        rgba(12, 18, 34, 0.65);
+      box-shadow: 0 18px 32px rgba(4, 8, 16, 0.45), inset 0 0 0 1px rgba(181, 216, 255, 0.16);
+      backdrop-filter: blur(2px);
+      overflow: hidden;
+      animation: panelIn 360ms ease both;
+    }
+
+    .overview-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(137, 187, 255, 0.28);
+      background: linear-gradient(180deg, rgba(56, 104, 176, 0.52), rgba(26, 45, 83, 0.34));
+    }
+
+    .overview-title {
+      margin: 0;
+      color: #d8eeff;
+      font-size: 18px;
+      letter-spacing: 0.03em;
+      text-shadow: 0 1px 0 rgba(0, 0, 0, 0.45);
+    }
+
+    .overview-subtitle {
+      color: rgba(215, 234, 255, 0.84);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .overview-columns {
+      flex: 1;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      padding: 10px;
+    }
+
+    .overview-col {
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid rgba(144, 190, 255, 0.25);
+      border-radius: 10px;
+      background: rgba(9, 18, 35, 0.5);
+      overflow: hidden;
+    }
+
+    .overview-col-head {
+      padding: 8px 10px;
+      color: #95ceff;
+      font-size: 12px;
+      font-weight: 900;
+      border-bottom: 1px solid rgba(123, 179, 255, 0.26);
+      background: rgba(45, 73, 123, 0.35);
+    }
+
+    .overview-col-body {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+      padding: 6px 8px 8px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(151, 201, 255, 0.66) rgba(19, 37, 70, 0.6);
+    }
+
+    .overview-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 6px;
+      padding: 6px;
+      border-radius: 8px;
+      border: 1px solid rgba(112, 167, 255, 0.18);
+      background: rgba(14, 30, 61, 0.54);
+      cursor: pointer;
+      transition: border-color 120ms ease, background 120ms ease, box-shadow 120ms ease;
+    }
+
+    .overview-row:hover {
+      border-color: rgba(151, 203, 255, 0.5);
+      background: rgba(22, 45, 86, 0.7);
+    }
+
+    .overview-row.is-selected {
+      border-color: rgba(255, 222, 114, 0.82);
+      background: linear-gradient(180deg, rgba(255, 196, 68, 0.22), rgba(45, 64, 105, 0.82));
+      box-shadow: inset 0 0 0 1px rgba(255, 243, 184, 0.5), 0 0 0 1px rgba(255, 205, 96, 0.44);
+    }
+
+    .overview-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .overview-main {
+      min-width: 0;
+    }
+
+    .overview-name {
+      display: block;
+      overflow: hidden;
+      color: #f0f8ff;
+      font-size: 13px;
+      font-weight: 900;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .overview-meta {
+      margin-top: 3px;
+      overflow: hidden;
+      color: rgba(190, 220, 255, 0.84);
+      font-size: 11px;
+      font-weight: 800;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .overview-scores {
+      margin-top: 2px;
+      color: #9ed2ff;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.01em;
+    }
+
+    .phone {
+      position: relative;
+      width: min(430px, 100vw);
+      height: min(932px, 100svh);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 8px 0 20px;
+      justify-self: end;
+    }
+
+    .leaderboard {
+      position: relative;
+      width: 100%;
+      max-width: 390px;
+      height: min(780px, calc(100svh - 188px));
+      animation: panelIn 420ms ease both;
+    }
+
+    .close {
+      position: absolute;
+      z-index: 8;
+      top: 26px;
+      right: 10px;
+      width: 42px;
+      height: 42px;
+      border: 0;
+      border-radius: 50%;
+      background: transparent;
+      color: #fff;
+      font-size: 38px;
+      line-height: 1;
+      cursor: pointer;
+      text-shadow: 0 3px 4px rgba(0, 0, 0, 0.48);
+      transition: transform 140ms ease;
+    }
+
+    .close:hover,
+    .close:focus-visible {
+      transform: scale(1.08) rotate(6deg);
+      outline: none;
+    }
+
+    .crown-stage {
+      position: absolute;
+      z-index: 5;
+      top: -20px;
+      left: 50%;
+      width: 236px;
+      height: 130px;
+      transform: translateX(-50%);
+      pointer-events: none;
+    }
+
+    .laurel {
+      position: absolute;
+      top: 33px;
+      width: 84px;
+      height: 64px;
+      border: 8px solid #ffd94c;
+      border-color: #ffd94c transparent transparent #ffd94c;
+      border-radius: 70px 0 0;
+      filter: drop-shadow(0 4px 2px rgba(123, 63, 0, 0.34));
+    }
+
+    .laurel.left {
+      left: 0;
+      transform: rotate(-25deg);
+    }
+
+    .laurel.right {
+      right: 0;
+      transform: scaleX(-1) rotate(-25deg);
+    }
+
+    .crown {
+      position: absolute;
+      left: 50%;
+      bottom: 0;
+      width: 132px;
+      height: 78px;
+      transform: translateX(-50%);
+      background: linear-gradient(180deg, #fff668 0%, #ffc525 44%, #ff941f 100%);
+      clip-path: polygon(0% 100%, 9% 35%, 30% 70%, 50% 0%, 70% 70%, 91% 35%, 100% 100%);
+      filter: drop-shadow(0 9px 5px rgba(120, 50, 0, 0.42));
+    }
+
+    .crown::before,
+    .crown::after {
+      content: "";
+      position: absolute;
+      border-radius: 50%;
+      background: #fff26e;
+      box-shadow: 0 0 13px rgba(255, 244, 105, 0.85);
+    }
+
+    .crown::before {
+      top: 11px;
+      left: 50%;
+      width: 16px;
+      height: 16px;
+      transform: translateX(-50%);
+    }
+
+    .crown::after {
+      top: 46px;
+      left: 56px;
+      width: 14px;
+      height: 14px;
+      background: #ff47cf;
+      transform: rotate(45deg);
+    }
+
+    .scroll-rod {
+      position: absolute;
+      z-index: 6;
+      top: 102px;
+      left: 50%;
+      width: calc(100% + 20px);
+      height: 22px;
+      transform: translateX(-50%);
+      border-radius: 999px;
+      background: linear-gradient(180deg, #ff7af4 0%, #b50fd8 46%, #7b13bb 100%);
+      box-shadow:
+        inset 0 4px 4px rgba(255, 255, 255, 0.36),
+        inset 0 -5px 5px rgba(74, 0, 104, 0.46),
+        0 4px 8px rgba(72, 0, 89, 0.36);
+    }
+
+    .scroll-rod::before,
+    .scroll-rod::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #ffe884, #d87b1c);
+      transform: translateY(-50%);
+      box-shadow: 0 0 0 4px rgba(158, 82, 21, 0.42) inset;
+    }
+
+    .scroll-rod::before {
+      left: -9px;
+    }
+
+    .scroll-rod::after {
+      right: -9px;
+    }
+
+    .panel {
+      position: absolute;
+      inset: 112px 0 0;
+      display: flex;
+      flex-direction: column;
+      padding: 40px 16px 18px;
+      border: 4px solid var(--panel-edge);
+      border-radius: 8px 8px 16px 16px;
+      background:
+        linear-gradient(180deg, rgba(255, 127, 255, 0.38) 0, transparent 112px),
+        linear-gradient(180deg, #c947eb 0%, #a02cda 52%, #c63be4 100%);
+      box-shadow: var(--shadow);
+      clip-path: polygon(0 0, 100% 0, 100% 94%, 50% 100%, 0 94%);
+    }
+
+    .panel::after {
+      content: "";
+      position: absolute;
+      inset: 8px;
+      z-index: 0;
+      border: 3px solid rgba(250, 136, 255, 0.66);
+      border-radius: 6px 6px 12px 12px;
+      clip-path: polygon(0 0, 100% 0, 100% 94%, 50% 100%, 0 94%);
+      pointer-events: none;
+    }
+
+    .panel > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .main-tabs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      margin: -2px -16px 14px;
+      border-bottom: 2px solid rgba(103, 17, 145, 0.38);
+      background: rgba(111, 21, 163, 0.4);
+    }
+
+    .main-tab {
+      min-width: 0;
+      height: 52px;
+      border: 0;
+      background: rgba(120, 18, 177, 0.42);
+      color: #f5b0ff;
+      font-size: 24px;
+      font-weight: 900;
+      text-shadow: 0 2px 0 rgba(88, 29, 98, 0.7), 0 0 8px rgba(255, 255, 255, 0.24);
+      cursor: pointer;
+    }
+
+    .main-tab.is-active {
+      color: #ffe469;
+      background: linear-gradient(180deg, #ff77ed, #ed64e8);
+      text-shadow: 0 2px 0 #b24d1f, 0 0 7px rgba(255, 255, 255, 0.45);
+    }
+
+    .period-tabs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .period-tab {
+      min-width: 0;
+      height: 42px;
+      border: 2px solid rgba(106, 67, 150, 0.46);
+      border-radius: 8px;
+      background: linear-gradient(180deg, #e0e8f2 0%, #a9b8ca 100%);
+      color: #fff;
+      font-size: 22px;
+      font-weight: 900;
+      cursor: pointer;
+      text-shadow: 0 2px 0 rgba(76, 83, 95, 0.72);
+      box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.48), 0 3px 3px rgba(83, 22, 112, 0.42);
+      transition: transform 150ms ease, filter 150ms ease;
+    }
+
+    .period-tab:hover,
+    .period-tab:focus-visible {
+      transform: translateY(-1px);
+      filter: brightness(1.04);
+      outline: none;
+    }
+
+    .period-tab[aria-selected="true"] {
+      background: linear-gradient(180deg, #ffcf58 0%, var(--orange) 100%);
+      text-shadow: 0 2px 0 rgba(168, 82, 21, 0.68);
+    }
+
+    .rank-list {
+      min-height: 0;
+      flex: 1;
+      overflow: auto;
+      padding: 5px 8px 16px;
+      background: rgba(94, 20, 130, 0.52);
+      box-shadow: inset 0 0 10px rgba(57, 3, 75, 0.42);
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 218, 85, 0.8) rgba(91, 17, 130, 0.72);
+    }
+
+    .rank-list::-webkit-scrollbar {
+      width: 7px;
+    }
+
+    .rank-list::-webkit-scrollbar-track {
+      background: rgba(91, 17, 130, 0.72);
+    }
+
+    .rank-list::-webkit-scrollbar-thumb {
+      border-radius: 999px;
+      background: rgba(255, 218, 85, 0.85);
+    }
+
+    .rank-row {
+      position: relative;
+      display: grid;
+      grid-template-columns: 58px 58px 1fr 76px;
+      align-items: center;
+      min-height: 68px;
+      margin-bottom: 10px;
+      padding: 7px 8px;
+      border: 2px solid rgba(139, 77, 179, 0.52);
+      background: var(--row-blue);
+      color: var(--text-blue);
+      box-shadow: 0 3px 0 rgba(82, 24, 112, 0.5);
+      animation: rowIn 260ms ease both;
+      animation-delay: calc(var(--row-index) * 14ms);
+      cursor: pointer;
+    }
+
+    .rank-row.top {
+      background: var(--row-gold);
+      color: var(--text-brown);
+    }
+
+    .rank-row.is-selected {
+      box-shadow: 0 0 0 2px rgba(255, 219, 107, 0.78), 0 3px 0 rgba(82, 24, 112, 0.5);
+    }
+
+    .rank-row.slice-head {
+      background: var(--row-green);
+      color: var(--text-green);
+    }
+
+    .rank-badge {
+      width: 52px;
+      height: 52px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      color: #74e7ff;
+      font-size: 23px;
+      font-weight: 900;
+      background:
+        radial-gradient(circle, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.04) 46%, transparent 49%),
+        rgba(65, 154, 227, 0.22);
+      border: 3px solid rgba(154, 219, 255, 0.36);
+      text-shadow: 0 2px 0 rgba(21, 95, 145, 0.48);
+    }
+
+    .rank-badge.medal {
+      width: 56px;
+      height: 50px;
+      border: 0;
+      border-radius: 18px 18px 22px 22px;
+      color: #fff5af;
+      background: linear-gradient(180deg, #ffe667, #ff9f21);
+      clip-path: polygon(50% 0, 62% 16%, 82% 11%, 90% 31%, 100% 47%, 91% 100%, 9% 100%, 0 47%, 10% 31%, 18% 11%, 38% 16%);
+      text-shadow: 0 2px 0 rgba(170, 78, 14, 0.7);
+      filter: drop-shadow(0 3px 1px rgba(130, 60, 12, 0.32));
+    }
+
+    .rank-badge.rank-2 {
+      color: #f8fbff;
+      background: linear-gradient(180deg, #f7fbff, #9fb3cc);
+      text-shadow: 0 2px 0 rgba(92, 102, 116, 0.7);
+    }
+
+    .rank-badge.rank-3 {
+      color: #fff2ea;
+      background: linear-gradient(180deg, #ffc5a3, #d97757);
+      text-shadow: 0 2px 0 rgba(132, 70, 44, 0.7);
+    }
+
+    .avatar {
+      width: 46px;
+      height: 46px;
+      display: grid;
+      place-items: center;
+      border: 3px solid #fff;
+      background: linear-gradient(135deg, #233957, #9de8ff);
+      color: #fff;
+      font-size: 16px;
+      font-weight: 900;
+      box-shadow: 0 2px 2px rgba(0, 0, 0, 0.28);
+    }
+
+    .avatar.style-1 { background: linear-gradient(135deg, #24212c, #e07e8a); }
+    .avatar.style-2 { background: linear-gradient(135deg, #133d5a, #87c8ff); }
+    .avatar.style-3 { background: linear-gradient(135deg, #4e2c74, #ffbae0); }
+    .avatar.style-4 { background: linear-gradient(135deg, #204633, #f2cc77); }
+    .avatar.style-5 { background: linear-gradient(135deg, #2e4569, #cabdff); }
+    .avatar.style-6 { background: linear-gradient(135deg, #5b272c, #ffd199); }
+
+    .player {
+      min-width: 0;
+      padding-left: 2px;
+    }
+
+    .player-name {
+      display: block;
+      overflow: hidden;
+      color: currentColor;
+      font-size: 19px;
+      font-weight: 900;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      text-shadow: 0 1px 0 rgba(255, 255, 255, 0.32);
+    }
+
+    .player-code {
+      display: block;
+      margin-top: 4px;
+      overflow: hidden;
+      color: rgba(76, 45, 41, 0.62);
+      font-size: 11px;
+      font-weight: 800;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .rank-row:not(.top) .player-code {
+      color: rgba(17, 73, 115, 0.68);
+    }
+
+    .rank-row.slice-head .player-code {
+      color: rgba(13, 87, 43, 0.68);
+    }
+
+    .score {
+      text-align: center;
+      font-weight: 900;
+      text-shadow: 0 1px 0 rgba(255, 255, 255, 0.32);
+    }
+
+    .score-label {
+      display: block;
+      margin-bottom: 2px;
+      font-size: 16px;
+    }
+
+    .score-value {
+      display: block;
+      color: #f06a28;
+      font-size: 22px;
+      line-height: 1;
+    }
+
+    .rank-row:not(.top) .score-value {
+      color: #236bdf;
+    }
+
+    .rank-row.slice-head .score-value {
+      color: #127439;
+    }
+
+    .bottom-note {
+      flex: 0 0 auto;
+      height: 44px;
+      display: grid;
+      place-items: center;
+      color: #ffe4ff;
+      font-size: 21px;
+      font-weight: 900;
+      text-align: center;
+      text-shadow: 0 2px 0 rgba(98, 29, 116, 0.82);
+    }
+
+    .setup-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: grid;
+      place-items: center;
+      padding: 22px;
+      background:
+        radial-gradient(circle at 20% 18%, rgba(255, 216, 92, 0.24), transparent 8rem),
+        linear-gradient(145deg, rgba(34, 49, 74, 0.96), rgba(21, 25, 37, 0.98) 54%, rgba(36, 27, 46, 0.98));
+      backdrop-filter: blur(4px);
+    }
+
+    body:not(.is-configuring) .setup-modal {
+      display: none;
+    }
+
+    body.is-configuring .leaderboard {
+      pointer-events: none;
+      filter: blur(1px) saturate(0.85);
+    }
+
+    body.is-configuring .robot-overview {
+      pointer-events: none;
+      filter: blur(1px) saturate(0.85);
+    }
+
+    .setup-dialog {
+      width: min(350px, 100%);
+      border: 4px solid var(--panel-edge);
+      border-radius: 8px;
+      padding: 20px 18px 18px;
+      background: linear-gradient(180deg, #cf4cf0, #8f23c7);
+      box-shadow: 0 18px 42px rgba(0, 0, 0, 0.42);
+      color: #fff;
+      animation: panelIn 280ms ease both;
+    }
+
+    .setup-title {
+      margin: 0 0 8px;
+      color: #ffe66c;
+      font-size: 25px;
+      font-weight: 900;
+      text-align: center;
+      text-shadow: 0 2px 0 #9d4717;
+    }
+
+    .setup-copy {
+      margin: 0 0 16px;
+      color: #ffe9ff;
+      font-size: 13px;
+      font-weight: 800;
+      line-height: 1.6;
+      text-align: center;
+      text-shadow: 0 1px 0 rgba(98, 29, 116, 0.8);
+    }
+
+    .setup-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+      color: #ffe9ff;
+      font-size: 13px;
+      font-weight: 900;
+      text-shadow: 0 1px 0 rgba(98, 29, 116, 0.8);
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    .field select,
+    .field input {
+      width: 100%;
+      min-height: 42px;
+      border: 2px solid rgba(111, 33, 142, 0.45);
+      border-radius: 8px;
+      padding: 0 10px;
+      background: #fff5ca;
+      color: #7b3813;
+      font: inherit;
+      font-weight: 900;
+      outline: none;
+      box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.62), 0 3px 0 rgba(109, 49, 20, 0.38);
+    }
+
+    .file-input {
+      padding-top: 8px;
+      color: #7b3813;
+      font-size: 12px;
+    }
+
+    .setup-error {
+      min-height: 18px;
+      margin: 0 0 10px;
+      color: #ffe66c;
+      font-size: 12px;
+      font-weight: 900;
+      text-align: center;
+      text-shadow: 0 1px 0 rgba(98, 29, 116, 0.8);
+    }
+
+    .setup-submit {
+      width: 100%;
+      min-height: 46px;
+      border: 0;
+      border-radius: 8px;
+      background: linear-gradient(180deg, #ffdd68, #ff9f21);
+      color: #8b4218;
+      font-size: 20px;
+      font-weight: 900;
+      cursor: pointer;
+      text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+      box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.52), 0 4px 0 #b65f20;
+    }
+
+    @keyframes panelIn {
+      from {
+        opacity: 0;
+        transform: translateY(24px) scale(0.98);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    @keyframes rowIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-height: 780px) {
+      .app-layout {
+        padding-top: 70px;
+      }
+
+      .robot-overview {
+        height: calc(100svh - 82px);
+      }
+
+      .phone {
+        padding-top: 6px;
+      }
+
+      .leaderboard {
+        height: calc(100svh - 168px);
+      }
+
+      .crown-stage {
+        top: -34px;
+        transform: translateX(-50%) scale(0.86);
+      }
+
+      .scroll-rod {
+        top: 82px;
+      }
+
+      .panel {
+        inset: 92px 0 0;
+        padding-top: 34px;
+      }
+
+      .main-tab {
+        height: 46px;
+        font-size: 22px;
+      }
+
+      .rank-row {
+        min-height: 62px;
+      }
+
+      .bottom-note {
+        height: 36px;
+      }
+    }
+
+    @media (max-width: 1180px) {
+      .app-layout {
+        grid-template-columns: 1fr;
+        align-items: start;
+        justify-items: center;
+        padding-top: 74px;
+        overflow: auto;
+      }
+
+      .robot-overview {
+        width: min(100%, 1000px);
+        height: auto;
+        min-height: 400px;
+      }
+
+      .overview-columns {
+        max-height: 52vh;
+      }
+
+      .phone {
+        justify-self: center;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .overview-columns {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 370px) {
+      .phone {
+        width: 100%;
+      }
+
+      .top-controls {
+        padding: 0 10px;
+      }
+
+      .panel {
+        padding-left: 11px;
+        padding-right: 11px;
+      }
+
+      .rank-row {
+        grid-template-columns: 50px 50px 1fr 68px;
+        min-height: 62px;
+        padding: 6px;
+      }
+
+      .rank-badge {
+        width: 46px;
+        height: 46px;
+        font-size: 19px;
+      }
+
+      .rank-badge.medal {
+        width: 50px;
+        height: 46px;
+      }
+
+      .avatar {
+        width: 42px;
+        height: 42px;
+      }
+
+      .player-name {
+        font-size: 17px;
+      }
+
+      .score-label {
+        font-size: 14px;
+      }
+
+      .score-value {
+        font-size: 19px;
+      }
+
+      .setup-modal {
+        padding: 14px;
+      }
+
+      .setup-dialog {
+        padding: 18px 14px 16px;
+      }
+    }
+  </style>
+</head>
+<body class="is-configuring">
+  <main class="app-layout">
+    <section class="robot-overview" aria-label="机器人分数总览">
+      <div class="overview-head">
+        <h2 class="overview-title">机器人分数总览</h2>
+        <span class="overview-subtitle">按配置顺序展示（3列×100名）</span>
+      </div>
+      <div class="overview-columns" id="overview-columns"></div>
+    </section>
+
+    <section class="phone">
+      <div class="top-controls" aria-label="时间设置">
+        <div class="time-box">
+          <div class="time-value time-with-icon">
+            <span class="period-icon day" id="hud-period-icon" aria-label="日间">☀</span>
+            <span id="hud-time">00:00</span>
+          </div>
+          <button class="time-step" id="hour-plus" type="button">小时+1</button>
+        </div>
+        <div class="time-box">
+          <div class="time-value" id="hud-weekday">周一</div>
+          <button class="time-step" id="day-plus" type="button">日期+1</button>
+        </div>
+      </div>
+      <section class="leaderboard" aria-label="模拟排行榜">
+        <button class="close" type="button" aria-label="关闭">×</button>
+
+        <div class="crown-stage" aria-hidden="true">
+          <span class="laurel left"></span>
+          <span class="laurel right"></span>
+          <span class="crown"></span>
+        </div>
+
+        <div class="scroll-rod" aria-hidden="true"></div>
+
+        <div class="panel">
+          <div class="main-tabs" aria-label="榜单分类">
+            <button class="main-tab is-active" type="button" data-main-board="main">主线榜</button>
+            <button class="main-tab" type="button" data-main-board="puzzle">拼图榜</button>
+            <button class="main-tab" type="button" data-main-board="streak">连胜榜</button>
+          </div>
+
+          <div class="period-tabs" role="tablist" aria-label="榜单时间">
+            <button class="period-tab" id="tab-day" type="button" role="tab" aria-selected="true" aria-controls="rank-panel" data-board="day">日榜</button>
+            <button class="period-tab" id="tab-week" type="button" role="tab" aria-selected="false" aria-controls="rank-panel" data-board="week">周榜</button>
+            <button class="period-tab" id="tab-total" type="button" role="tab" aria-selected="false" aria-controls="rank-panel" data-board="total">总榜</button>
+          </div>
+
+          <div class="rank-list" id="rank-panel" role="tabpanel" aria-labelledby="tab-day" tabindex="0">
+            <div id="rank-body"></div>
+          </div>
+
+          <div class="bottom-note">*榜单每小时刷新</div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <form class="setup-modal" id="setup-form" aria-label="生成排行榜设置">
+    <div class="setup-dialog">
+      <h2 class="setup-title">生成排行榜</h2>
+      <p class="setup-copy">先输入当前周几和几点；生成后可用顶部按钮测试时间变化。</p>
+
+      <div class="setup-grid">
+        <label class="field">
+          周几
+          <select id="weekday-input" required>
+            <option value="1">周一</option>
+            <option value="2">周二</option>
+            <option value="3">周三</option>
+            <option value="4">周四</option>
+            <option value="5">周五</option>
+            <option value="6">周六</option>
+            <option value="7">周日</option>
+          </select>
+        </label>
+
+        <label class="field">
+          几点
+          <input id="hour-input" type="number" min="0" max="23" step="1" required placeholder="0-23">
+        </label>
+
+        <label class="field full">
+          配置文件（XLS/CSV/TSV）
+          <input class="file-input" id="config-file" type="file" accept=".xls,.html,.csv,.tsv,.txt">
+        </label>
+      </div>
+
+      <p class="setup-error" id="setup-error" aria-live="polite"></p>
+      <button class="setup-submit" type="submit">生成</button>
+    </div>
+  </form>
+
+  <script>
+    const USER_COUNT = 300;
+    const boardLabels = {
+      day: "日榜",
+      week: "周榜",
+      total: "总榜"
+    };
+    const STORAGE_KEY = "mock-leaderboard-state-v1";
+
+    const weekdayLabels = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
+    const boardScoreKeys = {
+      day: "dayScore",
+      week: "weekScore",
+      total: "totalScore"
+    };
+    const boardStreakKeys = {
+      day: "bestDayStreak",
+      week: "bestWeekStreak",
+      total: "bestTotalStreak"
+    };
+    const mainBoardLabels = {
+      main: "主线榜",
+      puzzle: "拼图榜",
+      streak: "连胜榜"
+    };
+
+    const TOTAL_VISIBLE_LIMIT = 100;
+
+    function configForRobot(id) {
+      const playerPeriod = id % 2;
+      const interruptProbability = 10;
+      if (id <= 2) return { robot: String(id), dayInitial: [0, 2], weekInitial: [0, 15], totalInitial: [800, 1000], hourlyIncrement: [0, 15], changeProbability: 90, playerPeriod, interruptProbability };
+      if (id === 3) return { robot: String(id), dayInitial: [0, 2], weekInitial: [0, 15], totalInitial: [800, 1000], hourlyIncrement: [0, 15], changeProbability: 80, playerPeriod, interruptProbability };
+      if (id <= 5) return { robot: String(id), dayInitial: [0, 2], weekInitial: [0, 15], totalInitial: [600, 800], hourlyIncrement: [0, 15], changeProbability: 75, playerPeriod, interruptProbability };
+      if (id <= 20) return { robot: String(id), dayInitial: [0, 1], weekInitial: [0, 15], totalInitial: [600, 800], hourlyIncrement: [0, 15], changeProbability: 65, playerPeriod, interruptProbability };
+      if (id <= 34) return { robot: String(id), dayInitial: [0, 1], weekInitial: [0, 10], totalInitial: [400, 600], hourlyIncrement: [0, 15], changeProbability: 55, playerPeriod, interruptProbability };
+      if (id <= 50) return { robot: String(id), dayInitial: [0, 1], weekInitial: [0, 10], totalInitial: [400, 600], hourlyIncrement: [0, 15], changeProbability: 45, playerPeriod, interruptProbability };
+      return { robot: String(id), dayInitial: [0, 1], weekInitial: [0, 10], totalInitial: [200, 400], hourlyIncrement: [0, 15], changeProbability: 35, playerPeriod, interruptProbability };
+    }
+
+    const defaultRobotConfigs = Array.from({ length: USER_COUNT }, (_, index) => configForRobot(index + 1));
+
+    const familyNames = ["有匪", "张月", "三幸", "程爱", "浅雪", "山风", "海盐", "云鹿", "小满", "青禾", "星野", "白桃", "秋鱼", "阿柚", "松间"];
+    const givenNames = ["君子", "风招工", "福让步", "人", "旅人", "探险家", "棋手", "冒险王", "小队长", "捕星者", "寻宝员", "过关王"];
+
+    const fakeUsers = Array.from({ length: USER_COUNT }, (_, index) => {
+      const id = index + 1;
+      const family = familyNames[index % familyNames.length];
+      const given = givenNames[Math.floor(index / familyNames.length) % givenNames.length];
+      return {
+        id,
+        name: `${family}${given}${String(id).padStart(3, "0")}`,
+        code: `ID ${String(1300000000 + id * 37)}`
+      };
+    });
+
+    let activeBoard = "day";
+    let activeMainBoard = "main";
+    let boards = {};
+    let activeRobotConfigs = defaultRobotConfigs;
+    let generationContext = null;
+    let robotRuntimeRows = [];
+    let selectedRobotId = null;
+    let boardSelections = {
+      day: [],
+      week: []
+    };
+
+    const rankBody = document.querySelector("#rank-body");
+    const tabs = Array.from(document.querySelectorAll(".period-tab"));
+    const panel = document.querySelector("#rank-panel");
+    const mainTabs = Array.from(document.querySelectorAll(".main-tab"));
+    const setupForm = document.querySelector("#setup-form");
+    const weekdayInput = document.querySelector("#weekday-input");
+    const hourInput = document.querySelector("#hour-input");
+    const configFileInput = document.querySelector("#config-file");
+    const setupError = document.querySelector("#setup-error");
+    const hudTime = document.querySelector("#hud-time");
+    const hudPeriodIcon = document.querySelector("#hud-period-icon");
+    const hudWeekday = document.querySelector("#hud-weekday");
+    const hourPlusButton = document.querySelector("#hour-plus");
+    const dayPlusButton = document.querySelector("#day-plus");
+    const closeButton = document.querySelector(".close");
+    const overviewColumns = document.querySelector("#overview-columns");
+
+    function randomInRange(range) {
+      const [min, max] = range;
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function shuffledCopy(list) {
+      const copied = [...list];
+      for (let i = copied.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copied[i], copied[j]] = [copied[j], copied[i]];
+      }
+      return copied;
+    }
+
+    function pickBoardSelection(board) {
+      const allRobotIds = robotRuntimeRows.length
+        ? robotRuntimeRows.map((runtimeRow) => runtimeRow.id)
+        : fakeUsers.map((user) => user.id);
+      const targetCount = board === "day" ? 100 : USER_COUNT;
+      return shuffledCopy(allRobotIds).slice(0, Math.min(targetCount, allRobotIds.length));
+    }
+
+    function ensureBoardSelections() {
+      if (!Array.isArray(boardSelections.day) || !boardSelections.day.length) {
+        boardSelections.day = pickBoardSelection("day");
+      }
+      if (!Array.isArray(boardSelections.week) || !boardSelections.week.length) {
+        boardSelections.week = pickBoardSelection("week");
+      }
+    }
+
+    function getRobotConfig(index) {
+      const config = activeRobotConfigs[index];
+      if (!config) {
+        throw new Error(`机器人 ${index + 1} 缺少对应配置，请检查配置表行数`);
+      }
+      return config;
+    }
+
+    function createRuntimeRow(user, index) {
+      const config = getRobotConfig(index);
+      return {
+        ...user,
+        configId: config.robot,
+        dayInitialFactor: randomInRange(config.dayInitial),
+        weekInitialFactor: randomInRange(config.weekInitial),
+        totalInitial: randomInRange(config.totalInitial),
+        hourlyIncrementRange: config.hourlyIncrement,
+        changeProbability: config.changeProbability,
+        playerPeriod: config.playerPeriod,
+        interruptProbability: Number.isFinite(Number(config.interruptProbability))
+          ? Math.max(0, Math.min(100, Math.round(Number(config.interruptProbability))))
+          : 0
+      };
+    }
+
+    function calculateInitialDayScore(runtimeRow, hour) {
+      return hour * runtimeRow.dayInitialFactor;
+    }
+
+    function randomHourlyDelta(runtimeRow) {
+      const hourlyRange = runtimeRow.hourlyIncrementRange || [runtimeRow.hourlyIncrement || 0, runtimeRow.hourlyIncrement || 0];
+      return randomInRange(hourlyRange);
+    }
+
+    function shouldApplyHourlyChange(runtimeRow) {
+      const rawProbability = Number(runtimeRow.changeProbability);
+      const probability = Number.isFinite(rawProbability)
+        ? Math.max(0, Math.min(100, Math.round(rawProbability)))
+        : 100;
+      return Math.random() * 100 < probability;
+    }
+
+    function isPlayerActiveAtHour(runtimeRow, hour) {
+      const normalizedHour = ((Number(hour) % 24) + 24) % 24;
+      const playerPeriod = Number(runtimeRow.playerPeriod);
+      if (playerPeriod === 0) return normalizedHour >= 9 && normalizedHour < 21;
+      if (playerPeriod === 1) return normalizedHour >= 21 || normalizedHour < 9;
+      return true;
+    }
+
+    function shouldInterruptStreak(runtimeRow) {
+      const rawProbability = Number(runtimeRow.interruptProbability);
+      const probability = Number.isFinite(rawProbability)
+        ? Math.max(0, Math.min(100, Math.round(rawProbability)))
+        : 0;
+      return Math.random() * 100 < probability;
+    }
+
+    function initializeRuntimeScores(runtimeRow) {
+      const completedWeekDays = Math.max(generationContext.weekday - 1, 0);
+      const dayScore = calculateInitialDayScore(runtimeRow, generationContext.hour);
+      const weekInitial = completedWeekDays * runtimeRow.weekInitialFactor;
+      const weekScore = weekInitial + dayScore;
+      const totalScore = runtimeRow.totalInitial + weekScore;
+      const dayStreakSeed = Math.floor(dayScore * 0.8);
+      const weekStreakSeed = Math.floor(weekScore * 0.5);
+      const totalStreakSeed = Math.floor(totalScore * 0.1);
+
+      return {
+        ...runtimeRow,
+        currentDayScore: dayScore,
+        currentWeekScore: weekScore,
+        currentTotalScore: totalScore,
+        currentDayStreak: dayStreakSeed,
+        currentWeekStreak: weekStreakSeed,
+        currentTotalStreak: totalStreakSeed,
+        bestDayStreak: dayStreakSeed,
+        bestWeekStreak: weekStreakSeed,
+        bestTotalStreak: totalStreakSeed
+      };
+    }
+
+    function createProgress(runtimeRow) {
+      return {
+        ...runtimeRow,
+        dayScore: runtimeRow.currentDayScore,
+        weekScore: runtimeRow.currentWeekScore,
+        totalScore: runtimeRow.currentTotalScore,
+        dayStreak: runtimeRow.currentDayStreak,
+        weekStreak: runtimeRow.currentWeekStreak,
+        totalStreak: runtimeRow.currentTotalStreak,
+        bestDayStreak: runtimeRow.bestDayStreak,
+        bestWeekStreak: runtimeRow.bestWeekStreak,
+        bestTotalStreak: runtimeRow.bestTotalStreak
+      };
+    }
+
+    function createFreshRuntimeRows() {
+      return fakeUsers
+        .map(createRuntimeRow)
+        .map(initializeRuntimeScores);
+    }
+
+    function normalizeRuntimeRow(runtimeRow) {
+      const hourlyIncrementRange = runtimeRow.hourlyIncrementRange || [
+        runtimeRow.hourlyIncrement || 0,
+        runtimeRow.hourlyIncrement || 0
+      ];
+
+      return {
+        ...runtimeRow,
+        hourlyIncrementRange,
+        changeProbability: Number.isFinite(Number(runtimeRow.changeProbability))
+          ? Math.max(0, Math.min(100, Math.round(Number(runtimeRow.changeProbability))))
+          : 100,
+        playerPeriod: Number(runtimeRow.playerPeriod) === 1 ? 1 : 0,
+        interruptProbability: Number.isFinite(Number(runtimeRow.interruptProbability))
+          ? Math.max(0, Math.min(100, Math.round(Number(runtimeRow.interruptProbability))))
+          : 0,
+        currentDayScore: runtimeRow.currentDayScore || 0,
+        currentWeekScore: runtimeRow.currentWeekScore || 0,
+        currentTotalScore: runtimeRow.currentTotalScore ?? runtimeRow.totalInitial ?? 0,
+        currentDayStreak: runtimeRow.currentDayStreak ?? runtimeRow.bestDayStreak ?? 0,
+        currentWeekStreak: runtimeRow.currentWeekStreak ?? runtimeRow.bestWeekStreak ?? 0,
+        currentTotalStreak: runtimeRow.currentTotalStreak ?? runtimeRow.bestTotalStreak ?? 0,
+        bestDayStreak: runtimeRow.bestDayStreak ?? runtimeRow.currentDayStreak ?? 0,
+        bestWeekStreak: runtimeRow.bestWeekStreak ?? runtimeRow.currentWeekStreak ?? 0,
+        bestTotalStreak: runtimeRow.bestTotalStreak ?? runtimeRow.currentTotalStreak ?? 0
+      };
+    }
+
+    function saveState() {
+      if (!generationContext || !robotRuntimeRows.length || typeof localStorage === "undefined") return;
+
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          activeMainBoard,
+          activeBoard,
+          activeRobotConfigs,
+          generationContext,
+          robotRuntimeRows,
+          boardSelections
+        }));
+      } catch (error) {
+        console.warn("排行榜状态保存失败", error);
+      }
+    }
+
+    function loadState() {
+      if (typeof localStorage === "undefined") return false;
+
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return false;
+
+        const state = JSON.parse(raw);
+        if (!state?.generationContext || !Array.isArray(state?.robotRuntimeRows) || !state.robotRuntimeRows.length) {
+          return false;
+        }
+
+        activeMainBoard = state.activeMainBoard || "main";
+        activeBoard = state.activeBoard || "day";
+        activeRobotConfigs = Array.isArray(state.activeRobotConfigs) && state.activeRobotConfigs.length
+          ? state.activeRobotConfigs
+          : defaultRobotConfigs;
+        generationContext = state.generationContext;
+        robotRuntimeRows = state.robotRuntimeRows.map(normalizeRuntimeRow);
+        boardSelections = state.boardSelections || { day: [], week: [] };
+        const activeTab = mainTabs.find((tab) => tab.dataset.mainBoard === activeMainBoard) || mainTabs[0];
+        mainTabs.forEach((item) => item.classList.toggle("is-active", item === activeTab));
+        ensureBoardSelections();
+        generateData();
+        hideSetup();
+        return true;
+      } catch (error) {
+        console.warn("排行榜状态读取失败", error);
+        return false;
+      }
+    }
+
+    function clearState() {
+      if (typeof localStorage === "undefined") return;
+
+      try {
+        localStorage.removeItem(STORAGE_KEY);
+      } catch (error) {
+        console.warn("排行榜状态清理失败", error);
+      }
+    }
+
+    function resetRuntimeFromConfig() {
+      robotRuntimeRows = createFreshRuntimeRows();
+      boardSelections = {
+        day: pickBoardSelection("day"),
+        week: pickBoardSelection("week")
+      };
+      saveState();
+    }
+
+    function addHourlyProgress(runtimeRow, hour = generationContext?.hour ?? 0) {
+      const shouldChange = shouldApplyHourlyChange(runtimeRow);
+      const inPlayablePeriod = isPlayerActiveAtHour(runtimeRow, hour);
+      const hourDelta = shouldChange && inPlayablePeriod ? randomHourlyDelta(runtimeRow) : 0;
+      const interrupted = hourDelta > 0 && shouldInterruptStreak(runtimeRow);
+      const nextDayStreak = hourDelta === 0 ? runtimeRow.currentDayStreak : (interrupted ? 0 : runtimeRow.currentDayStreak + hourDelta);
+      const nextWeekStreak = hourDelta === 0 ? runtimeRow.currentWeekStreak : (interrupted ? 0 : runtimeRow.currentWeekStreak + hourDelta);
+      const nextTotalStreak = hourDelta === 0 ? runtimeRow.currentTotalStreak : (interrupted ? 0 : runtimeRow.currentTotalStreak + hourDelta);
+      return {
+        ...runtimeRow,
+        currentDayScore: runtimeRow.currentDayScore + hourDelta,
+        currentWeekScore: runtimeRow.currentWeekScore + hourDelta,
+        currentTotalScore: runtimeRow.currentTotalScore + hourDelta,
+        currentDayStreak: nextDayStreak,
+        currentWeekStreak: nextWeekStreak,
+        currentTotalStreak: nextTotalStreak,
+        bestDayStreak: Math.max(runtimeRow.bestDayStreak, nextDayStreak),
+        bestWeekStreak: Math.max(runtimeRow.bestWeekStreak, nextWeekStreak),
+        bestTotalStreak: Math.max(runtimeRow.bestTotalStreak, nextTotalStreak)
+      };
+    }
+
+    function applyHourDelta() {
+      robotRuntimeRows = robotRuntimeRows.map((runtimeRow) => {
+        return addHourlyProgress(runtimeRow, generationContext.hour);
+      });
+    }
+
+    function startNextDay() {
+      const shouldResetWeek = generationContext.weekday === 7;
+      const nextWeekday = shouldResetWeek ? 1 : generationContext.weekday + 1;
+
+      robotRuntimeRows = robotRuntimeRows.map((runtimeRow) => {
+        const progressedRow = addHourlyProgress(runtimeRow, 0);
+        return {
+          ...progressedRow,
+          currentDayScore: 0,
+          currentDayStreak: 0,
+          bestDayStreak: 0,
+          currentWeekScore: shouldResetWeek ? 0 : progressedRow.currentWeekScore,
+          currentWeekStreak: shouldResetWeek ? 0 : progressedRow.currentWeekStreak,
+          bestWeekStreak: shouldResetWeek ? 0 : progressedRow.bestWeekStreak
+        };
+      });
+
+      generationContext.weekday = nextWeekday;
+      generationContext.hour = 0;
+      boardSelections.day = pickBoardSelection("day");
+      if (shouldResetWeek) {
+        boardSelections.week = pickBoardSelection("week");
+      }
+    }
+
+    function jumpToNextDate() {
+      const shouldResetWeek = generationContext.weekday === 7;
+      const nextWeekday = shouldResetWeek ? 1 : generationContext.weekday + 1;
+      const targetHour = generationContext.hour;
+
+      robotRuntimeRows = robotRuntimeRows.map((runtimeRow) => {
+        let progressedRow = runtimeRow;
+
+        for (let hour = targetHour; hour < 24; hour += 1) {
+          progressedRow = addHourlyProgress(progressedRow, (hour + 1) % 24);
+        }
+
+        const nextDayScore = calculateInitialDayScore(progressedRow, targetHour);
+        const nextWeekBase = shouldResetWeek ? 0 : progressedRow.currentWeekScore;
+
+        return {
+          ...progressedRow,
+          currentDayScore: nextDayScore,
+          currentDayStreak: Math.floor(nextDayScore * 0.8),
+          bestDayStreak: Math.floor(nextDayScore * 0.8),
+          currentWeekScore: nextWeekBase + nextDayScore,
+          currentTotalScore: progressedRow.currentTotalScore + nextDayScore,
+          currentWeekStreak: shouldResetWeek ? Math.floor(nextDayScore * 0.5) : progressedRow.currentWeekStreak + Math.floor(nextDayScore * 0.5),
+          bestWeekStreak: shouldResetWeek
+            ? Math.floor(nextDayScore * 0.5)
+            : Math.max(progressedRow.bestWeekStreak, progressedRow.currentWeekStreak + Math.floor(nextDayScore * 0.5)),
+          currentTotalStreak: progressedRow.currentTotalStreak + Math.floor(nextDayScore * 0.1),
+          bestTotalStreak: Math.max(progressedRow.bestTotalStreak, progressedRow.currentTotalStreak + Math.floor(nextDayScore * 0.1))
+        };
+      });
+
+      generationContext.weekday = nextWeekday;
+      boardSelections.day = pickBoardSelection("day");
+      if (shouldResetWeek) {
+        boardSelections.week = pickBoardSelection("week");
+      }
+    }
+
+    function buildBoard(progressRows, board) {
+      const scoreKeys = activeMainBoard === "streak" ? boardStreakKeys : boardScoreKeys;
+      const scoreKey = scoreKeys[board];
+      return progressRows
+        .map((user) => ({
+          ...user,
+          score: user[scoreKey]
+        }))
+        .sort((a, b) => b.score - a.score || a.id - b.id)
+        .map((user, index) => ({
+          ...user,
+          rank: index + 1
+        }));
+    }
+
+    function generateData() {
+      if (!generationContext) return;
+
+      if (!robotRuntimeRows.length) {
+        robotRuntimeRows = createFreshRuntimeRows();
+        boardSelections = {
+          day: pickBoardSelection("day"),
+          week: pickBoardSelection("week")
+        };
+      }
+      ensureBoardSelections();
+
+      const progressRows = robotRuntimeRows.map(createProgress);
+      renderRobotOverview(progressRows);
+      boards = {
+        day: buildBoard(progressRows, "day"),
+        week: buildBoard(progressRows, "week"),
+        total: buildBoard(progressRows, "total")
+      };
+      render();
+    }
+
+    function getVisibleRows() {
+      const boardRows = boards[activeBoard] || [];
+      if (activeBoard === "total") {
+        return boardRows
+          .slice(0, TOTAL_VISIBLE_LIMIT)
+          .map((user, index) => ({
+            ...user,
+            displayRank: index + 1
+          }));
+      }
+
+      const selectedIds = new Set(boardSelections[activeBoard] || []);
+      return boardRows
+        .filter((user) => selectedIds.has(user.id))
+        .map((user, index) => ({
+          ...user,
+          displayRank: index + 1
+        }));
+    }
+
+    function rankBadgeClass(rank) {
+      if (rank === 1) return "rank-badge medal rank-1";
+      if (rank === 2) return "rank-badge medal rank-2";
+      if (rank === 3) return "rank-badge medal rank-3";
+      return "rank-badge";
+    }
+
+    function rankRowClass(rank, index) {
+      if (rank <= 3) return "rank-row top";
+      return "rank-row";
+    }
+
+    function avatarClass(id) {
+      return `avatar style-${(id % 6) + 1}`;
+    }
+
+    function renderRows(rows) {
+      const scoreLabel = activeMainBoard === "streak" ? "最连胜" : "通关数";
+      rankBody.innerHTML = rows.map((user, index) => `
+        <div class="${rankRowClass(user.displayRank, index)}${selectedRobotId === user.id ? " is-selected" : ""}" data-user-id="${user.id}" style="--row-index: ${Math.min(index, 14)}">
+          <span class="${rankBadgeClass(user.displayRank)}">${user.displayRank}</span>
+          <span class="${avatarClass(user.id)}" aria-hidden="true">${String(user.id).slice(-2)}</span>
+          <span class="player">
+            <span class="player-name">${user.name}</span>
+            <span class="player-code">${user.code} · 机器人${user.configId}</span>
+          </span>
+          <span class="score">
+            <span class="score-label">${scoreLabel}</span>
+            <span class="score-value">${user.score}</span>
+          </span>
+        </div>
+      `).join("");
+    }
+
+    function renderTabs() {
+      tabs.forEach((tab) => {
+        const selected = tab.dataset.board === activeBoard;
+        tab.setAttribute("aria-selected", String(selected));
+      });
+    }
+
+    function applyOverviewSelectionHighlight() {
+      if (!overviewColumns) return;
+      const rows = overviewColumns.querySelectorAll(".overview-row");
+      rows.forEach((row) => {
+        const rowUserId = Number(row.dataset.userId);
+        row.classList.toggle("is-selected", rowUserId === selectedRobotId);
+      });
+    }
+
+    function setSelectedRobot(id) {
+      const nextId = Number(id);
+      if (!Number.isFinite(nextId)) return;
+      selectedRobotId = nextId;
+      render();
+      applyOverviewSelectionHighlight();
+    }
+
+    function renderRobotOverview(progressRows) {
+      if (!overviewColumns) return;
+      const chunkSize = 100;
+      const totalColumns = 3;
+      const columnsMarkup = Array.from({ length: totalColumns }, (_, columnIndex) => {
+        const start = columnIndex * chunkSize;
+        const end = start + chunkSize;
+        const rows = progressRows.slice(start, end);
+        const startLabel = start + 1;
+        const endLabel = Math.min(end, progressRows.length);
+        const rowsMarkup = rows.map((user, localIndex) => {
+          return `
+            <div class="overview-row${selectedRobotId === user.id ? " is-selected" : ""}" data-user-id="${user.id}">
+              <div class="overview-main">
+                <span class="overview-name">${user.name}</span>
+                <span class="overview-meta">机器人${user.configId}</span>
+                <span class="overview-scores">日 ${user.dayScore} · 周 ${user.weekScore} · 总 ${user.totalScore}</span>
+              </div>
+            </div>
+          `;
+        }).join("");
+
+        return `
+          <section class="overview-col">
+            <div class="overview-col-head">第 ${startLabel}-${endLabel} 名</div>
+            <div class="overview-col-body">${rowsMarkup}</div>
+          </section>
+        `;
+      }).join("");
+      overviewColumns.innerHTML = columnsMarkup;
+      applyOverviewSelectionHighlight();
+    }
+
+    function renderNotice(rows) {
+      const timeText = `${String(generationContext.hour).padStart(2, "0")}:00`;
+      const weekdayText = weekdayLabels[generationContext.weekday - 1];
+      const isDayPeriod = generationContext.hour >= 9 && generationContext.hour < 21;
+      panel.setAttribute("aria-label", `${mainBoardLabels[activeMainBoard]} ${boardLabels[activeBoard]} 展示 ${rows.length} 名，排名 1-${rows.length} · ${weekdayText} ${timeText} · ${activeRobotConfigs.length} 行配置`);
+      hudTime.textContent = timeText;
+      if (hudPeriodIcon) {
+        hudPeriodIcon.textContent = isDayPeriod ? "☀" : "🌙";
+        hudPeriodIcon.classList.toggle("day", isDayPeriod);
+        hudPeriodIcon.classList.toggle("night", !isDayPeriod);
+        hudPeriodIcon.setAttribute("aria-label", isDayPeriod ? "日间" : "夜间");
+      }
+      hudWeekday.textContent = weekdayText;
+      panel.setAttribute("aria-labelledby", `tab-${activeBoard}`);
+    }
+
+    function render() {
+      const rows = getVisibleRows();
+      renderTabs();
+      renderNotice(rows);
+      renderRows(rows);
+    }
+
+    tabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        activeBoard = tab.dataset.board;
+        render();
+        panel.scrollTop = 0;
+        saveState();
+      });
+    });
+
+    rankBody.addEventListener("click", (event) => {
+      const clickedRow = event.target.closest(".rank-row");
+      if (!clickedRow) return;
+      setSelectedRobot(clickedRow.dataset.userId);
+    });
+
+    overviewColumns.addEventListener("click", (event) => {
+      const clickedRow = event.target.closest(".overview-row");
+      if (!clickedRow) return;
+      setSelectedRobot(clickedRow.dataset.userId);
+    });
+
+    mainTabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        mainTabs.forEach((item) => item.classList.remove("is-active"));
+        tab.classList.add("is-active");
+        activeMainBoard = tab.dataset.mainBoard || "main";
+        generateData();
+        saveState();
+      });
+    });
+
+    function parseRange(value, fieldName) {
+      const match = String(value || "").match(/\[\s*(\d+)\s*,\s*(\d+)\s*\]/);
+      if (!match) {
+        throw new Error(`${fieldName} 需要形如 [0,15] 的范围`);
+      }
+
+      const first = Number(match[1]);
+      const second = Number(match[2]);
+      return first <= second ? [first, second] : [second, first];
+    }
+
+    function parseProbability(value, fieldName) {
+      const clean = cleanCell(value).replace("%", "");
+      if (!clean) {
+        throw new Error(`${fieldName} 不能为空`);
+      }
+      const probability = Number(clean);
+      if (!Number.isFinite(probability) || !Number.isInteger(probability)) {
+        throw new Error(`${fieldName} 必须是 0-100 的整数（例如 50 表示 50%）`);
+      }
+      if (probability < 0 || probability > 100) {
+        throw new Error(`${fieldName} 必须在 0-100 之间（例如 50 表示 50%）`);
+      }
+      return probability;
+    }
+
+    function parsePlayerPeriod(value, fieldName) {
+      const clean = cleanCell(value);
+      if (clean !== "0" && clean !== "1") {
+        throw new Error(`${fieldName} 必须是 0（日间）或 1（夜间）`);
+      }
+      return Number(clean);
+    }
+
+    function cleanCell(value) {
+      return String(value || "").replace(/^\uFEFF/, "").trim();
+    }
+
+    function stripHtml(value) {
+      return cleanCell(String(value || "")
+        .replace(/<br\s*\/?>/gi, "\n")
+        .replace(/<[^>]*>/g, "")
+        .replace(/&nbsp;/gi, " ")
+        .replace(/&amp;/gi, "&")
+        .replace(/&lt;/gi, "<")
+        .replace(/&gt;/gi, ">")
+        .replace(/&quot;/gi, "\""));
+    }
+
+    function parseHtmlTable(text) {
+      const rowMatches = String(text || "").match(/<tr[\s\S]*?<\/tr>/gi) || [];
+      return rowMatches
+        .map((rowHtml) => {
+          const cellMatches = rowHtml.match(/<t[dh][\s\S]*?<\/t[dh]>/gi) || [];
+          return cellMatches.map(stripHtml);
+        })
+        .filter((row) => row.some(Boolean));
+    }
+
+    function parseDelimitedLine(line, delimiter) {
+      if (delimiter === "\t") {
+        return line.split("\t").map(cleanCell);
+      }
+
+      const cells = [];
+      let current = "";
+      let inQuotes = false;
+
+      for (let index = 0; index < line.length; index += 1) {
+        const char = line[index];
+        const next = line[index + 1];
+
+        if (char === "\"" && next === "\"") {
+          current += "\"";
+          index += 1;
+        } else if (char === "\"") {
+          inQuotes = !inQuotes;
+        } else if (char === delimiter && !inQuotes) {
+          cells.push(cleanCell(current));
+          current = "";
+        } else {
+          current += char;
+        }
+      }
+
+      cells.push(cleanCell(current));
+      return cells;
+    }
+
+    function parseConfigText(text) {
+      if (/<tr[\s>]/i.test(text)) {
+        return parseConfigRows(parseHtmlTable(text));
+      }
+
+      const delimiter = text.includes("\t") ? "\t" : ",";
+      const rows = text
+        .split(/\r?\n/)
+        .map((line) => parseDelimitedLine(line, delimiter))
+        .filter((row) => row.some(Boolean));
+
+      return parseConfigRows(rows);
+    }
+
+    function parseConfigRows(rows) {
+      if (rows.length < 2) {
+        throw new Error("配置至少需要表头和一行机器人数据");
+      }
+
+      const hasHeader = Number.isNaN(Number(rows[0][0]));
+      const dataRows = hasHeader ? rows.slice(1) : rows;
+      const parsed = dataRows.map((row, index) => ({
+        robot: cleanCell(row[0]) || String(index + 1),
+        dayInitial: parseRange(row[1], `第 ${index + 1} 行日榜初始进度`),
+        weekInitial: parseRange(row[2], `第 ${index + 1} 行周榜初始进度`),
+        totalInitial: parseRange(row[3], `第 ${index + 1} 行总榜初始进度`),
+        hourlyIncrement: parseRange(row[4], `第 ${index + 1} 行每小时增量`),
+        changeProbability: parseProbability(row[5], `第 ${index + 1} 行变更概率`),
+        playerPeriod: parsePlayerPeriod(row[6], `第 ${index + 1} 行玩家时段配置`),
+        interruptProbability: parseProbability(row[7], `第 ${index + 1} 行中断概率`)
+      }));
+
+      if (!parsed.length) {
+        throw new Error("没有读到机器人配置");
+      }
+
+      return parsed;
+    }
+
+    async function getSelectedConfigs() {
+      const file = configFileInput.files[0];
+      if (!file) {
+        return defaultRobotConfigs;
+      }
+
+      const text = await file.text();
+      const parsedConfigs = parseConfigText(text);
+      if (parsedConfigs.length < USER_COUNT) {
+        throw new Error(`配置行数不足：需要至少 ${USER_COUNT} 行，当前 ${parsedConfigs.length} 行`);
+      }
+      return parsedConfigs.slice(0, USER_COUNT);
+    }
+
+    function showSetup(message = "") {
+      setupError.textContent = message;
+      document.body.classList.add("is-configuring");
+    }
+
+    function hideSetup() {
+      setupError.textContent = "";
+      document.body.classList.remove("is-configuring");
+    }
+
+    function regenerateForCurrentTime() {
+      if (!generationContext) return;
+      saveState();
+      generateData();
+      panel.scrollTop = 0;
+    }
+
+    function advanceHour() {
+      if (!generationContext) return;
+      const nextHour = generationContext.hour + 1;
+
+      if (nextHour >= 24) {
+        startNextDay();
+      } else {
+        generationContext.hour = nextHour;
+        applyHourDelta();
+      }
+
+      regenerateForCurrentTime();
+    }
+
+    function advanceDay() {
+      if (!generationContext) return;
+      jumpToNextDate();
+      regenerateForCurrentTime();
+    }
+
+    function initSetupDefaults() {
+      const now = new Date();
+      const weekday = now.getDay() === 0 ? 7 : now.getDay();
+      weekdayInput.value = String(weekday);
+      hourInput.value = String(now.getHours());
+    }
+
+    setupForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      setupError.textContent = "";
+
+      const weekday = Number(weekdayInput.value);
+      const hour = Number(hourInput.value);
+
+      if (!Number.isInteger(weekday) || weekday < 1 || weekday > 7) {
+        setupError.textContent = "周几请输入 1-7";
+        return;
+      }
+
+      if (!Number.isInteger(hour) || hour < 0 || hour > 23) {
+        setupError.textContent = "几点请输入 0-23";
+        return;
+      }
+
+      try {
+        activeRobotConfigs = await getSelectedConfigs();
+        generationContext = {
+          weekday,
+          hour
+        };
+        resetRuntimeFromConfig();
+        generateData();
+        panel.scrollTop = 0;
+        hideSetup();
+      } catch (error) {
+        setupError.textContent = error.message || "配置读取失败";
+      }
+    });
+
+    closeButton.addEventListener("click", () => showSetup());
+    hourPlusButton.addEventListener("click", advanceHour);
+    dayPlusButton.addEventListener("click", advanceDay);
+
+    initSetupDefaults();
+    loadState();
+  </script>
+</body>
+</html>
